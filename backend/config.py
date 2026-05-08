@@ -11,8 +11,6 @@ WHISPER_COMPUTE_TYPE = "int8"   # int8 | float16 | float32
 TTS_VOICE_THAI = "th-TH-PremwadeeNeural"
 TTS_VOICE_FRENCH = "fr-FR-DeniseNeural"
 
-# Server — 0.0.0.0 so the phone can reach it on the LAN
+# Server — TLS is terminated by the reverse proxy, not here
 HOST = "0.0.0.0"
 PORT = 8000
-CERT_FILE = "../certs/cert.pem"
-KEY_FILE = "../certs/key.pem"

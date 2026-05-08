@@ -11,7 +11,7 @@ import db
 import llm
 import stt
 import tts
-from config import CERT_FILE, HOST, KEY_FILE, PORT
+from config import HOST, PORT
 
 
 @asynccontextmanager
@@ -116,11 +116,4 @@ async def post_message(conv_id: int, body: MessageCreate):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host=HOST,
-        port=PORT,
-        reload=True,
-        ssl_certfile=CERT_FILE,
-        ssl_keyfile=KEY_FILE,
-    )
+    uvicorn.run("main:app", host=HOST, port=PORT, reload=True)
