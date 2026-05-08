@@ -1,26 +1,17 @@
 import { useRef, useState } from 'react'
 import { sendVoice, translateText } from '../api.js'
 
-// Play a silent buffer during a user-gesture event to unlock audio autoplay on mobile.
-async function unlockAudio() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const buf = ctx.createBuffer(1, 1, 22050)
-    const src = ctx.createBufferSource()
-    src.buffer = buf
-    src.connect(ctx.destination)
-    src.start(0)
-    await ctx.resume()
-    ctx.close()
-  } catch {}
-}
+// 1-sample silent WAV — used to activate the audio element during the user gesture
+// so iOS Safari allows play() later in the async pipeline.
+const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA'
 
 export default function TranslatorInput({ langLeft, langRight, setLoading, setError, onTranslated }) {
   const [text, setText] = useState('')
   const [recording, setRecording] = useState(false)
   const recorderRef = useRef(null)
   const chunksRef = useRef([])
-  const audioRef = useRef(null)
+  // Pre-create one persistent audio element; activating it once per gesture is enough.
+  const audioRef = useRef(new Audio())
 
   const handleTranslate = async () => {
     if (!text.trim()) return
@@ -39,7 +30,10 @@ export default function TranslatorInput({ langLeft, langRight, setLoading, setEr
 
   const startRecording = async () => {
     setError('')
-    await unlockAudio()
+    // Activate the audio element synchronously within the user-gesture tick.
+    // No await here — play() must be called before any async hop.
+    audioRef.current.src = SILENT_WAV
+    audioRef.current.play().catch(() => {})
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
@@ -71,12 +65,11 @@ export default function TranslatorInput({ langLeft, langRight, setLoading, setEr
       await onTranslated(sourceLang, transcript, translation)
       try {
         const url = URL.createObjectURL(audioData)
-        const audio = new Audio(url)
-        audioRef.current = audio
-        audio.onended = () => URL.revokeObjectURL(url)
-        await audio.play()
+        audioRef.current.onended = () => URL.revokeObjectURL(url)
+        audioRef.current.src = url
+        await audioRef.current.play()
       } catch {
-        // Autoplay blocked by browser — user can tap 🔊 to replay
+        // Autoplay still blocked — user can tap 🔊 to replay
       }
     } catch {
       setError('Erreur lors du traitement vocal.')
@@ -108,7 +101,6 @@ export default function TranslatorInput({ langLeft, langRight, setLoading, setEr
       <button className="translate-btn" onClick={handleTranslate} disabled={!text.trim()}>
         Traduire
       </button>
-      <audio ref={audioRef} style={{ display: 'none' }} />
     </div>
   )
 }
