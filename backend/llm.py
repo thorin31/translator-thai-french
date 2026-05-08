@@ -11,7 +11,7 @@ _PROMPT = (
 
 
 async def translate(text: str) -> str:
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         r = await client.post(
             f"{OLLAMA_BASE_URL}/api/chat",
             json={
