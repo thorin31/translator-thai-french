@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ConversationHistory from './components/ConversationHistory.jsx'
 import MicButton from './components/MicButton.jsx'
 import TranslatorInput from './components/TranslatorInput.jsx'
@@ -14,6 +14,12 @@ export default function App() {
   const [primaryLang, setPrimaryLang] = useState(() => loadStorage('translator_primary_lang', null))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const bottomRef = useRef(null)
+
+  // Scroll to latest entry whenever history grows
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [history.length])
 
   const addEntry = (sourceLang, sourceText, targetText) => {
     const pl = primaryLang ?? sourceLang
@@ -22,7 +28,7 @@ export default function App() {
       localStorage.setItem('translator_primary_lang', JSON.stringify(pl))
     }
     const entry = { id: Date.now(), sourceLang, sourceText, targetText }
-    const next = [entry, ...history]
+    const next = [...history, entry]
     setHistory(next)
     localStorage.setItem('translator_history', JSON.stringify(next))
   }
@@ -36,36 +42,45 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <span className="flag">🇹🇭</span>
-        <span className="arrow">↔</span>
-        <span className="flag">🇫🇷</span>
-      </header>
+      {/* Scrollable history zone */}
+      <div className="history-area">
+        <header className="app-header">
+          <span className="flag">🇹🇭</span>
+          <span className="arrow">↔</span>
+          <span className="flag">🇫🇷</span>
+        </header>
 
-      <TranslatorInput
-        setLoading={setLoading}
-        setError={setError}
-        onTranslated={addEntry}
-      />
+        {history.length > 0 && (
+          <ConversationHistory
+            history={history}
+            primaryLang={primaryLang}
+            onClear={clearHistory}
+          />
+        )}
 
-      <div className="divider">— ou parlez —</div>
+        {/* Anchor used to auto-scroll to bottom */}
+        <div ref={bottomRef} />
+      </div>
 
-      <MicButton
-        setLoading={setLoading}
-        setError={setError}
-        onTranslated={addEntry}
-      />
+      {/* Fixed input zone at the bottom */}
+      <div className="input-zone">
+        {loading && <p className="status">Traitement…</p>}
+        {error && <p className="error">{error}</p>}
 
-      {loading && <p className="status">Traitement…</p>}
-      {error && <p className="error">{error}</p>}
-
-      {history.length > 0 && (
-        <ConversationHistory
-          history={history}
-          primaryLang={primaryLang}
-          onClear={clearHistory}
+        <TranslatorInput
+          setLoading={setLoading}
+          setError={setError}
+          onTranslated={addEntry}
         />
-      )}
+
+        <div className="divider">— ou parlez —</div>
+
+        <MicButton
+          setLoading={setLoading}
+          setError={setError}
+          onTranslated={addEntry}
+        />
+      </div>
     </div>
   )
 }
