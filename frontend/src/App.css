@@ -193,7 +193,7 @@
 
 .history-cell {
   position: relative;
-  padding: 11px 36px 11px 13px;
+  padding: 11px 40px 11px 13px;
   border-radius: var(--radius);
   border: 1.5px solid var(--border);
   font-size: 0.95rem;
@@ -204,10 +204,16 @@
 .cell-source { background: #ffffff; }
 .cell-target  { background: #f3f4f6; }
 
-.copy-btn {
+.cell-actions {
   position: absolute;
   top: 7px;
   right: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cell-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -216,8 +222,9 @@
   transition: opacity 0.15s;
   padding: 2px;
   line-height: 1;
+  display: block;
 }
-.copy-btn:hover { opacity: 1; }
+.cell-btn:hover { opacity: 1; }
 
 /* ── Sidebar ── */
 .sidebar-backdrop {

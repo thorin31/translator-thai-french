@@ -27,6 +27,16 @@ export async function sendVoice(audioBlob) {
   return { audioData, transcript, translation, sourceLang }
 }
 
+export async function speakText(text, language) {
+  const res = await fetch(`${BASE_URL}/tts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, language }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.blob()
+}
+
 // ── Conversations ─────────────────────────────────────────────────────────────
 
 export async function getConversations() {

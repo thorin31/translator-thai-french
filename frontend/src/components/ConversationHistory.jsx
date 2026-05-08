@@ -1,7 +1,41 @@
+import { useRef, useState } from 'react'
+import { speakText } from '../api.js'
+
 function CopyBtn({ text }) {
   return (
-    <button className="copy-btn" onClick={() => navigator.clipboard.writeText(text)} title="Copier">
+    <button className="cell-btn" onClick={() => navigator.clipboard.writeText(text)} title="Copier">
       📋
+    </button>
+  )
+}
+
+function ReadBtn({ text, language }) {
+  const [playing, setPlaying] = useState(false)
+  const audioRef = useRef(null)
+
+  const handleRead = async () => {
+    if (playing) {
+      audioRef.current?.pause()
+      setPlaying(false)
+      return
+    }
+    try {
+      setPlaying(true)
+      const blob = await speakText(text, language)
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onended = () => { setPlaying(false); URL.revokeObjectURL(url) }
+      audio.onerror = () => setPlaying(false)
+      await audio.play()
+    } catch {
+      setPlaying(false)
+    }
+  }
+
+  return (
+    <button className="cell-btn" onClick={handleRead} title={playing ? 'Arrêter' : 'Écouter'}>
+      {playing ? '⏹' : '🔊'}
     </button>
   )
 }
@@ -27,11 +61,17 @@ export default function ConversationHistory({ messages, primaryLang }) {
           <div key={msg.id} className="history-entry">
             <div className={`history-cell ${leftIsSource ? 'cell-source' : 'cell-target'}`}>
               <p>{leftText}</p>
-              <CopyBtn text={leftText} />
+              <div className="cell-actions">
+                <CopyBtn text={leftText} />
+                <ReadBtn text={leftText} language={primaryLang} />
+              </div>
             </div>
             <div className={`history-cell ${leftIsSource ? 'cell-target' : 'cell-source'}`}>
               <p>{rightText}</p>
-              <CopyBtn text={rightText} />
+              <div className="cell-actions">
+                <CopyBtn text={rightText} />
+                <ReadBtn text={rightText} language={secondaryLang} />
+              </div>
             </div>
           </div>
         )
