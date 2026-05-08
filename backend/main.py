@@ -112,19 +112,19 @@ async def voice_pipeline(
     )
 
 
-@app.post("/tts")
-async def text_to_speech_endpoint(req: "TTSRequest"):
-    if not req.text.strip():
-        raise HTTPException(400, "Empty text")
-    audio_data = await tts.synthesize(req.text, req.language)
-    return Response(content=audio_data, media_type="audio/mpeg")
-
-
 # ── Conversation endpoints ────────────────────────────────────────────────────
 
 class TTSRequest(BaseModel):
     text: str
     language: str
+
+
+@app.post("/tts")
+async def text_to_speech_endpoint(req: TTSRequest):
+    if not req.text.strip():
+        raise HTTPException(400, "Empty text")
+    audio_data = await tts.synthesize(req.text, req.language)
+    return Response(content=audio_data, media_type="audio/mpeg")
 
 
 class ConversationCreate(BaseModel):

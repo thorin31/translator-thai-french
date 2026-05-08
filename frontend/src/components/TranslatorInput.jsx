@@ -54,11 +54,14 @@ export default function TranslatorInput({ langLeft, langRight, setLoading, setEr
     try {
       const { audioData, transcript, translation, sourceLang } = await sendVoice(blob, langLeft, langRight)
       await onTranslated(sourceLang, transcript, translation)
-      const url = URL.createObjectURL(audioData)
-      if (audioRef.current) {
-        audioRef.current.src = url
-        await audioRef.current.play()
-        audioRef.current.onended = () => URL.revokeObjectURL(url)
+      try {
+        const url = URL.createObjectURL(audioData)
+        const audio = new Audio(url)
+        audioRef.current = audio
+        audio.onended = () => URL.revokeObjectURL(url)
+        await audio.play()
+      } catch {
+        // Autoplay blocked by browser — user can tap 🔊 to replay
       }
     } catch {
       setError('Erreur lors du traitement vocal.')
