@@ -1,6 +1,20 @@
 import { useRef, useState } from 'react'
 import { sendVoice, translateText } from '../api.js'
 
+// Play a silent buffer during a user-gesture event to unlock audio autoplay on mobile.
+async function unlockAudio() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const buf = ctx.createBuffer(1, 1, 22050)
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(ctx.destination)
+    src.start(0)
+    await ctx.resume()
+    ctx.close()
+  } catch {}
+}
+
 export default function TranslatorInput({ langLeft, langRight, setLoading, setError, onTranslated }) {
   const [text, setText] = useState('')
   const [recording, setRecording] = useState(false)
@@ -25,6 +39,7 @@ export default function TranslatorInput({ langLeft, langRight, setLoading, setEr
 
   const startRecording = async () => {
     setError('')
+    await unlockAudio()
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
