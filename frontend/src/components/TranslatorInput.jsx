@@ -1,18 +1,17 @@
 import { useState } from 'react'
 import { translateText } from '../api.js'
 
-export default function TranslatorInput({ setLoading, setError }) {
+export default function TranslatorInput({ setLoading, setError, onTranslated }) {
   const [text, setText] = useState('')
-  const [translation, setTranslation] = useState('')
 
   const handleTranslate = async () => {
     if (!text.trim()) return
     setLoading(true)
     setError('')
-    setTranslation('')
     try {
       const data = await translateText(text)
-      setTranslation(data.translation)
+      onTranslated(data.source_lang, text, data.translation)
+      setText('')
     } catch {
       setError('Erreur de traduction. Le serveur est-il démarré ?')
     } finally {
@@ -36,18 +35,6 @@ export default function TranslatorInput({ setLoading, setError }) {
       >
         Traduire
       </button>
-      {translation && (
-        <div className="translation-box">
-          <p>{translation}</p>
-          <button
-            className="copy-btn"
-            onClick={() => navigator.clipboard.writeText(translation)}
-            title="Copier"
-          >
-            📋
-          </button>
-        </div>
-      )}
     </div>
   )
 }

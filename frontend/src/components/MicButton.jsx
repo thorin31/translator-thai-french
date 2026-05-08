@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { sendVoice } from '../api.js'
 
-export default function MicButton({ setTranscript, setTranslation, setLoading, setError }) {
+export default function MicButton({ setLoading, setError, onTranslated }) {
   const [recording, setRecording] = useState(false)
   const recorderRef = useRef(null)
   const chunksRef = useRef([])
@@ -37,9 +37,8 @@ export default function MicButton({ setTranscript, setTranslation, setLoading, s
   const processVoice = async (blob) => {
     setLoading(true)
     try {
-      const { audioData, transcript, translation } = await sendVoice(blob)
-      setTranscript(transcript)
-      setTranslation(translation)
+      const { audioData, transcript, translation, sourceLang } = await sendVoice(blob)
+      onTranslated(sourceLang, transcript, translation)
       const url = URL.createObjectURL(audioData)
       if (audioRef.current) {
         audioRef.current.src = url

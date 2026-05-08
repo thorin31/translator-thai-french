@@ -25,12 +25,16 @@ class TranslateRequest(BaseModel):
     text: str
 
 
+def _detect_lang(text: str) -> str:
+    return "th" if any("฀" <= ch <= "๿" for ch in text) else "fr"
+
+
 @app.post("/translate")
 async def translate_text(req: TranslateRequest):
     if not req.text.strip():
         raise HTTPException(400, "Empty text")
     result = await llm.translate(req.text)
-    return {"translation": result}
+    return {"translation": result, "source_lang": _detect_lang(req.text)}
 
 
 @app.post("/voice")
