@@ -30,17 +30,30 @@
 }
 .sidebar-toggle:hover { background: var(--border); }
 
-.header-flags {
+.lang-selectors {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
 }
-.header-spacer { width: 40px; }
 
-.flag { font-size: 2rem; }
-.arrow { font-size: 1.2rem; color: var(--text-muted); }
+.lang-select {
+  padding: 5px 6px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  max-width: 140px;
+  transition: border-color 0.15s;
+}
+.lang-select:focus { border-color: var(--accent); }
+
+.header-spacer { width: 40px; }
+.arrow { font-size: 1.1rem; color: var(--text-muted); }
 
 /* ── Scrollable history area ── */
 .history-area {
@@ -307,7 +320,15 @@
 .sidebar-item:hover { background: var(--bg); }
 .sidebar-item.active { background: #eff6ff; }
 
-.sidebar-date { font-size: 0.85rem; color: var(--text); flex: 1; }
+.sidebar-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-pair { font-size: 0.82rem; color: var(--text); font-weight: 500; }
+.sidebar-date { font-size: 0.75rem; color: var(--text-muted); }
 
 .sidebar-delete {
   background: none;

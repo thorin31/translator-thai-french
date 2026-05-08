@@ -1,20 +1,19 @@
 import { useRef, useState } from 'react'
 import { sendVoice, translateText } from '../api.js'
 
-export default function TranslatorInput({ setLoading, setError, onTranslated }) {
+export default function TranslatorInput({ langLeft, langRight, setLoading, setError, onTranslated }) {
   const [text, setText] = useState('')
   const [recording, setRecording] = useState(false)
   const recorderRef = useRef(null)
   const chunksRef = useRef([])
   const audioRef = useRef(null)
 
-  // ── Text translation ──────────────────────────────────────────────────────
   const handleTranslate = async () => {
     if (!text.trim()) return
     setLoading(true)
     setError('')
     try {
-      const data = await translateText(text)
+      const data = await translateText(text, langLeft, langRight)
       await onTranslated(data.source_lang, text, data.translation)
       setText('')
     } catch {
@@ -24,7 +23,6 @@ export default function TranslatorInput({ setLoading, setError, onTranslated }) 
     }
   }
 
-  // ── Voice recording ───────────────────────────────────────────────────────
   const startRecording = async () => {
     setError('')
     try {
@@ -54,7 +52,7 @@ export default function TranslatorInput({ setLoading, setError, onTranslated }) 
   const processVoice = async (blob) => {
     setLoading(true)
     try {
-      const { audioData, transcript, translation, sourceLang } = await sendVoice(blob)
+      const { audioData, transcript, translation, sourceLang } = await sendVoice(blob, langLeft, langRight)
       await onTranslated(sourceLang, transcript, translation)
       const url = URL.createObjectURL(audioData)
       if (audioRef.current) {
@@ -75,7 +73,7 @@ export default function TranslatorInput({ setLoading, setError, onTranslated }) 
         <textarea
           value={text}
           onChange={e => setText(e.target.value)}
-          placeholder="Saisissez du texte en thaï ou en français…"
+          placeholder="Saisissez du texte…"
           rows={3}
           className="input-area"
         />

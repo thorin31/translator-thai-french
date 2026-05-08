@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { speakText } from '../api.js'
+import { LANGUAGES } from '../languages.js'
 
 function CopyBtn({ text }) {
   return (
@@ -40,22 +41,21 @@ function ReadBtn({ text, language }) {
   )
 }
 
-const LABELS = { th: '🇹🇭 Thaï', fr: '🇫🇷 Français' }
-
-export default function ConversationHistory({ messages, primaryLang }) {
-  const secondaryLang = primaryLang === 'th' ? 'fr' : 'th'
+export default function ConversationHistory({ messages, langLeft, langRight }) {
+  const leftLabel  = `${LANGUAGES[langLeft]?.flag ?? ''} ${LANGUAGES[langLeft]?.name ?? langLeft}`
+  const rightLabel = `${LANGUAGES[langRight]?.flag ?? ''} ${LANGUAGES[langRight]?.name ?? langRight}`
 
   return (
     <div className="history">
       <div className="history-col-headers">
-        <span>{LABELS[primaryLang]}</span>
-        <span>{LABELS[secondaryLang]}</span>
+        <span>{leftLabel}</span>
+        <span>{rightLabel}</span>
       </div>
 
       {messages.map(msg => {
-        const leftText = msg.source_lang === primaryLang ? msg.source_text : msg.target_text
-        const rightText = msg.source_lang === secondaryLang ? msg.source_text : msg.target_text
-        const leftIsSource = msg.source_lang === primaryLang
+        const leftText  = msg.source_lang === langLeft  ? msg.source_text : msg.target_text
+        const rightText = msg.source_lang === langRight ? msg.source_text : msg.target_text
+        const leftIsSource = msg.source_lang === langLeft
 
         return (
           <div key={msg.id} className="history-entry">
@@ -63,14 +63,14 @@ export default function ConversationHistory({ messages, primaryLang }) {
               <p>{leftText}</p>
               <div className="cell-actions">
                 <CopyBtn text={leftText} />
-                <ReadBtn text={leftText} language={primaryLang} />
+                <ReadBtn text={leftText} language={langLeft} />
               </div>
             </div>
             <div className={`history-cell ${leftIsSource ? 'cell-target' : 'cell-source'}`}>
               <p>{rightText}</p>
               <div className="cell-actions">
                 <CopyBtn text={rightText} />
-                <ReadBtn text={rightText} language={secondaryLang} />
+                <ReadBtn text={rightText} language={langRight} />
               </div>
             </div>
           </div>

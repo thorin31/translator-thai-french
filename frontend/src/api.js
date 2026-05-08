@@ -1,23 +1,25 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://192.168.81.126:8000'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://translator.ai1.fr/api'
 
 async function _json(res) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
 
-// ── Translation ──────────────────────────────────────────────────────────────
+// ── Translation ───────────────────────────────────────────────────────────────
 
-export async function translateText(text) {
+export async function translateText(text, langLeft, langRight) {
   return _json(await fetch(`${BASE_URL}/translate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, lang_left: langLeft, lang_right: langRight }),
   }))
 }
 
-export async function sendVoice(audioBlob) {
+export async function sendVoice(audioBlob, langLeft, langRight) {
   const form = new FormData()
   form.append('audio', audioBlob, 'recording.webm')
+  form.append('lang_left', langLeft)
+  form.append('lang_right', langRight)
   const res = await fetch(`${BASE_URL}/voice`, { method: 'POST', body: form })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const audioData = await res.blob()
@@ -43,11 +45,11 @@ export async function getConversations() {
   return _json(await fetch(`${BASE_URL}/conversations`))
 }
 
-export async function createConversation(primaryLang) {
+export async function createConversation(langLeft, langRight) {
   return _json(await fetch(`${BASE_URL}/conversations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ primary_lang: primaryLang }),
+    body: JSON.stringify({ lang_left: langLeft, lang_right: langRight }),
   }))
 }
 
