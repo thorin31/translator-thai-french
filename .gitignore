@@ -11,6 +11,9 @@ node_modules/
 dist/
 .env.local
 
+# Database
+backend/translator.db
+
 # Certs (private key — never commit)
 certs/key.pem
 certs/cert.pem

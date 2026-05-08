@@ -1,21 +1,14 @@
 function CopyBtn({ text }) {
   return (
-    <button
-      className="copy-btn"
-      onClick={() => navigator.clipboard.writeText(text)}
-      title="Copier"
-    >
+    <button className="copy-btn" onClick={() => navigator.clipboard.writeText(text)} title="Copier">
       📋
     </button>
   )
 }
 
-const LABELS = {
-  th: '🇹🇭 Thaï',
-  fr: '🇫🇷 Français',
-}
+const LABELS = { th: '🇹🇭 Thaï', fr: '🇫🇷 Français' }
 
-export default function ConversationHistory({ history, primaryLang, onClear }) {
+export default function ConversationHistory({ messages, primaryLang }) {
   const secondaryLang = primaryLang === 'th' ? 'fr' : 'th'
 
   return (
@@ -25,20 +18,13 @@ export default function ConversationHistory({ history, primaryLang, onClear }) {
         <span>{LABELS[secondaryLang]}</span>
       </div>
 
-      {history.map(entry => {
-        // Text in primary language → left column
-        // Text in secondary language → right column
-        const leftText = entry.sourceLang === primaryLang
-          ? entry.sourceText
-          : entry.targetText
-        const rightText = entry.sourceLang === secondaryLang
-          ? entry.sourceText
-          : entry.targetText
-        // White = what the user typed (source), gray = translation
-        const leftIsSource = entry.sourceLang === primaryLang
+      {messages.map(msg => {
+        const leftText = msg.source_lang === primaryLang ? msg.source_text : msg.target_text
+        const rightText = msg.source_lang === secondaryLang ? msg.source_text : msg.target_text
+        const leftIsSource = msg.source_lang === primaryLang
 
         return (
-          <div key={entry.id} className="history-entry">
+          <div key={msg.id} className="history-entry">
             <div className={`history-cell ${leftIsSource ? 'cell-source' : 'cell-target'}`}>
               <p>{leftText}</p>
               <CopyBtn text={leftText} />
@@ -50,12 +36,6 @@ export default function ConversationHistory({ history, primaryLang, onClear }) {
           </div>
         )
       })}
-
-      <div className="history-footer">
-        <button className="clear-btn" onClick={onClear}>
-          🗑 Effacer l'historique
-        </button>
-      </div>
     </div>
   )
 }

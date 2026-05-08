@@ -1,16 +1,26 @@
+from contextlib import asynccontextmanager
 from urllib.parse import quote
+
 import uvicorn
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+import db
 import llm
 import stt
 import tts
 from config import CERT_FILE, HOST, KEY_FILE, PORT
 
-app = FastAPI(title="Translator Thai-French")
+
+@asynccontextmanager
+async def lifespan(app):
+    await db.init_db()
+    yield
+
+
+app = FastAPI(title="Translator Thai-French", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,12 +31,16 @@ app.add_middleware(
 )
 
 
-class TranslateRequest(BaseModel):
-    text: str
-
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _detect_lang(text: str) -> str:
     return "th" if any("฀" <= ch <= "๿" for ch in text) else "fr"
+
+
+# ── Translation endpoints ─────────────────────────────────────────────────────
+
+class TranslateRequest(BaseModel):
+    text: str
 
 
 @app.post("/translate")
@@ -48,8 +62,6 @@ async def voice_pipeline(audio: UploadFile = File(...)):
         raise HTTPException(422, "Could not transcribe audio")
 
     translation = await llm.translate(transcript)
-
-    # TTS in the target language (opposite of detected source)
     target_lang = "fr" if src_lang == "th" else "th"
     audio_data = await tts.synthesize(translation, target_lang)
 
@@ -63,6 +75,45 @@ async def voice_pipeline(audio: UploadFile = File(...)):
         },
     )
 
+
+# ── Conversation endpoints ────────────────────────────────────────────────────
+
+class ConversationCreate(BaseModel):
+    primary_lang: str
+
+
+class MessageCreate(BaseModel):
+    source_lang: str
+    source_text: str
+    target_text: str
+
+
+@app.get("/conversations")
+async def get_conversations():
+    return await db.list_conversations()
+
+
+@app.post("/conversations", status_code=201)
+async def post_conversation(body: ConversationCreate):
+    return await db.create_conversation(body.primary_lang)
+
+
+@app.delete("/conversations/{conv_id}", status_code=204)
+async def del_conversation(conv_id: int):
+    await db.delete_conversation(conv_id)
+
+
+@app.get("/conversations/{conv_id}/messages")
+async def get_messages(conv_id: int):
+    return await db.list_messages(conv_id)
+
+
+@app.post("/conversations/{conv_id}/messages", status_code=201)
+async def post_message(conv_id: int, body: MessageCreate):
+    return await db.add_message(conv_id, body.source_lang, body.source_text, body.target_text)
+
+
+# ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     uvicorn.run(

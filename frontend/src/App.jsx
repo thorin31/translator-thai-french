@@ -1,84 +1,109 @@
 import { useEffect, useRef, useState } from 'react'
+import * as api from './api.js'
 import ConversationHistory from './components/ConversationHistory.jsx'
-import MicButton from './components/MicButton.jsx'
+import Sidebar from './components/Sidebar.jsx'
 import TranslatorInput from './components/TranslatorInput.jsx'
 import './App.css'
 
-function loadStorage(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback }
-  catch { return fallback }
-}
-
 export default function App() {
-  const [history, setHistory] = useState(() => loadStorage('translator_history', []))
-  const [primaryLang, setPrimaryLang] = useState(() => loadStorage('translator_primary_lang', null))
+  const [conversations, setConversations] = useState([])
+  const [currentConvId, setCurrentConvId] = useState(null)
+  const [primaryLang, setPrimaryLang] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const bottomRef = useRef(null)
 
-  // Scroll to latest entry whenever history grows
+  useEffect(() => {
+    api.getConversations()
+      .then(convs => {
+        setConversations(convs)
+        if (convs.length > 0) selectConversation(convs[0])
+      })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [history.length])
+  }, [messages.length])
 
-  const addEntry = (sourceLang, sourceText, targetText) => {
-    const pl = primaryLang ?? sourceLang
-    if (!primaryLang) {
-      setPrimaryLang(pl)
-      localStorage.setItem('translator_primary_lang', JSON.stringify(pl))
-    }
-    const entry = { id: Date.now(), sourceLang, sourceText, targetText }
-    const next = [...history, entry]
-    setHistory(next)
-    localStorage.setItem('translator_history', JSON.stringify(next))
+  const selectConversation = async (conv) => {
+    const msgs = await api.getMessages(conv.id)
+    setCurrentConvId(conv.id)
+    setPrimaryLang(conv.primary_lang)
+    setMessages(msgs)
+    setSidebarOpen(false)
   }
 
-  const clearHistory = () => {
-    setHistory([])
+  const startNew = () => {
+    setCurrentConvId(null)
     setPrimaryLang(null)
-    localStorage.removeItem('translator_history')
-    localStorage.removeItem('translator_primary_lang')
+    setMessages([])
+    setSidebarOpen(false)
+  }
+
+  const handleTranslated = async (sourceLang, sourceText, targetText) => {
+    let convId = currentConvId
+    if (convId === null) {
+      const conv = await api.createConversation(sourceLang)
+      convId = conv.id
+      setPrimaryLang(sourceLang)
+      setCurrentConvId(convId)
+      setConversations(prev => [conv, ...prev])
+    }
+    const msg = await api.addMessage(convId, sourceLang, sourceText, targetText)
+    setMessages(prev => [...prev, msg])
+  }
+
+  const handleDeleteConversation = async (id) => {
+    await api.deleteConversation(id)
+    setConversations(prev => prev.filter(c => c.id !== id))
+    if (currentConvId === id) startNew()
   }
 
   return (
     <div className="app">
-      {/* Scrollable history zone */}
-      <div className="history-area">
-        <header className="app-header">
+      {sidebarOpen && (
+        <Sidebar
+          conversations={conversations}
+          currentConvId={currentConvId}
+          onSelect={selectConversation}
+          onDelete={handleDeleteConversation}
+          onNew={startNew}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <header className="app-header">
+        <button className="sidebar-toggle" onClick={() => setSidebarOpen(true)} title="Historique">
+          ☰
+        </button>
+        <div className="header-flags">
           <span className="flag">🇹🇭</span>
           <span className="arrow">↔</span>
           <span className="flag">🇫🇷</span>
-        </header>
+        </div>
+        <div className="header-spacer" />
+      </header>
 
-        {history.length > 0 && (
-          <ConversationHistory
-            history={history}
-            primaryLang={primaryLang}
-            onClear={clearHistory}
-          />
+      <div className="history-area">
+        {messages.length > 0 && primaryLang && (
+          <ConversationHistory messages={messages} primaryLang={primaryLang} />
         )}
-
-        {/* Anchor used to auto-scroll to bottom */}
+        {messages.length === 0 && (
+          <p className="empty-hint">Tapez un texte ou maintenez 🎙️ pour commencer</p>
+        )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Fixed input zone at the bottom */}
       <div className="input-zone">
         {loading && <p className="status">Traitement…</p>}
         {error && <p className="error">{error}</p>}
-
         <TranslatorInput
           setLoading={setLoading}
           setError={setError}
-          onTranslated={addEntry}
-        />
-
-        <div className="divider">— ou parlez —</div>
-
-        <MicButton
-          setLoading={setLoading}
-          setError={setError}
-          onTranslated={addEntry}
+          onTranslated={handleTranslated}
         />
       </div>
     </div>
