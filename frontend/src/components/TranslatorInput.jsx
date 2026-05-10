@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { sendVoice, translateText } from '../api.js'
 
 // 1-sample silent WAV — used to activate the audio element during the user gesture
@@ -10,8 +10,32 @@ export default function TranslatorInput({ langLeft, langRight, setLoading, setEr
   const [recording, setRecording] = useState(false)
   const recorderRef = useRef(null)
   const chunksRef = useRef([])
-  // Pre-create one persistent audio element; activating it once per gesture is enough.
   const audioRef = useRef(new Audio())
+  // Kept alive between recordings so getUserMedia isn't called again
+  const streamRef = useRef(null)
+  // True if stopRecording fired before getUserMedia resolved (permission dialog timing)
+  const pendingStopRef = useRef(false)
+
+  useEffect(() => {
+    // Warm up mic permission as soon as the component mounts.
+    // On Android Chrome this resolves silently if already granted.
+    // On iOS this is a no-op (requires a user gesture) and the catch is swallowed.
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => { streamRef.current = stream })
+      .catch(() => {})
+
+    return () => {
+      streamRef.current?.getTracks().forEach(t => t.stop())
+    }
+  }, [])
+
+  const acquireStream = async () => {
+    const live = streamRef.current?.getTracks().some(t => t.readyState === 'live')
+    if (live) return streamRef.current
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    streamRef.current = stream
+    return stream
+  }
 
   const handleTranslate = async () => {
     if (!text.trim()) return
@@ -29,18 +53,18 @@ export default function TranslatorInput({ langLeft, langRight, setLoading, setEr
   }
 
   const startRecording = async () => {
+    pendingStopRef.current = false
     setError('')
-    // Activate the audio element synchronously within the user-gesture tick.
-    // No await here — play() must be called before any async hop.
     audioRef.current.src = SILENT_WAV
     audioRef.current.play().catch(() => {})
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const stream = await acquireStream()
+      // User released the button while the permission dialog was open → abort
+      if (pendingStopRef.current) return
       const recorder = new MediaRecorder(stream)
       chunksRef.current = []
       recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop())
         await processVoice(new Blob(chunksRef.current, { type: 'audio/webm' }))
       }
       recorder.start()
@@ -55,6 +79,9 @@ export default function TranslatorInput({ langLeft, langRight, setLoading, setEr
     if (recorderRef.current?.state === 'recording') {
       recorderRef.current.stop()
       setRecording(false)
+    } else {
+      // Recording hasn't started yet (waiting for permission dialog) — signal abort
+      pendingStopRef.current = true
     }
   }
 
