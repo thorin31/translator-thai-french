@@ -36,10 +36,22 @@ Because the microphone requires HTTPS, you need to trust the self-signed certifi
 
 > If your server IP changes, update `frontend/.env` and regenerate the certificate by re-running `bash setup.sh`.
 
+## Installing as a PWA
+
+The app can be installed on your home screen for a native-like experience.
+
+**Android (Chrome):**
+Chrome will show an "Add to Home Screen" banner automatically. You can also use the browser menu → *Install app*.
+
+**iOS (Safari):**
+Tap the Share button → *Add to Home Screen*.
+
+> On iOS, microphone permission is not persistent — you will need to re-grant it each time you open the app (this is an iOS browser limitation, not an app bug).
+
 ## Usage
 
-- **Text**: type in Thai or French — translation appears automatically after a short pause.
-- **Voice**: hold the microphone button, speak, then release. The translation plays back as audio.
+- **Text**: type in any supported language — translation appears after submitting.
+- **Voice**: hold the microphone button, speak, then release. The translation plays back as audio. Microphone permission is requested once per session and reused for subsequent recordings.
 
 ## Configuration
 
